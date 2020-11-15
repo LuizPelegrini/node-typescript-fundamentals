@@ -1,6 +1,12 @@
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 
+interface RequestDTO {
+  title: string;
+  value: number;
+  type: 'income' | 'outcome';
+}
+
 class CreateTransactionService {
   private transactionsRepository: TransactionsRepository;
 
@@ -8,8 +14,23 @@ class CreateTransactionService {
     this.transactionsRepository = transactionsRepository;
   }
 
-  public execute(): Transaction {
-    // TODO
+  public execute({ title, value, type }: RequestDTO): Transaction {
+    // User can't create a transaction if he does not have enough balance
+    if (type === 'outcome') {
+      const balance = this.transactionsRepository.getBalance();
+      if (balance.total < value) {
+        throw Error('You do not have enough balance');
+      }
+    }
+
+    // create transaction
+    const transaction = this.transactionsRepository.create({
+      title,
+      value,
+      type,
+    });
+
+    return transaction;
   }
 }
 
