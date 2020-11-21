@@ -29,47 +29,31 @@ class TransactionsRepository {
   }
 
   public getBalance(): Balance {
-    const balance: Balance = {
-      income: 0,
-      outcome: 0,
-      total: 0,
-    };
+    // reduce the transactions into a balance object
+    const balance = this.transactions.reduce(
+      (accumulator: Balance, transaction: Transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            accumulator.income += transaction.value;
+            break;
+          case 'outcome':
+            accumulator.outcome += transaction.value;
+            break;
+          default:
+            break;
+        }
 
-    // if no transactions has been made, return an "empty" balance
-    if (this.transactions.length === 0) return balance;
-
-    // initialize the first values for income/outcome
-    if (this.transactions[0].type === 'income')
-      balance.income = this.transactions[0].value;
-    else balance.outcome = this.transactions[0].value;
-
-    // reduce the array
-    this.transactions.reduce((previousValue, currentValue) => {
-      if (currentValue.type === 'income') {
-        balance.income += currentValue.value;
-        return {
-          ...currentValue,
-        };
-      }
-
-      balance.outcome += currentValue.value;
-      return {
-        ...currentValue,
-      };
-    });
+        return accumulator;
+      },
+      {
+        income: 0,
+        outcome: 0,
+        total: 0,
+      },
+    );
 
     balance.total = balance.income - balance.outcome;
-
     return balance;
-  }
-
-  public summary(): Summary {
-    const summary: Summary = {
-      transactions: this.transactions,
-      balance: this.getBalance(),
-    };
-
-    return summary;
   }
 
   public create({ title, value, type }: TransactionDTO): Transaction {
