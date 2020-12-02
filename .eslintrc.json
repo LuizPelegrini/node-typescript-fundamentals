@@ -21,6 +21,7 @@
   },
   "plugins": ["@typescript-eslint", "prettier"],
   "rules": {
+    "class-methods-use-this": "off", // dont need to use the keyword this inside class methods
     "prettier/prettier": "error",
     "import/extensions": [
       "error",
