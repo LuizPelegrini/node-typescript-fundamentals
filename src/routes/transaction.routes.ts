@@ -8,12 +8,12 @@ const transactionRouter = Router();
 const transactionsRepository = new TransactionsRepository();
 
 transactionRouter.get('/', (request, response) => {
-    // return a summary of all the transactions
-    const transactions = transactionsRepository.all();
-    // return a balance resulted from all transactions
-    const balance = transactionsRepository.getBalance();
+  // return a summary of all the transactions
+  const transactions = transactionsRepository.all();
+  // return a balance resulted from all transactions
+  const balance = transactionsRepository.getBalance();
 
-    return response.json({transactions, balance});
+  return response.json({ transactions, balance });
 });
 
 transactionRouter.post('/', (request, response) => {
