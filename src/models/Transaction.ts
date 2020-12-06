@@ -17,6 +17,7 @@ class Transaction {
   @Column()
   title: string;
 
+  // convert the data from string to number, because pg was returning this field as string
   @Column({ transformer: new ColumnNumericTransformer() })
   value: number;
 

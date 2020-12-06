@@ -3,6 +3,7 @@ import { getCustomRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
+import CreateCategoryService from '../services/CreateCategoryService';
 
 const transactionRouter = Router();
 
@@ -21,15 +22,17 @@ transactionRouter.post('/', async (request, response) => {
   try {
     const { title, value, type, categoryName } = request.body;
 
+    // create a category service that POSSIBLY create a new category or return an existing one
+    const createCategoryService = new CreateCategoryService();
+    const category = await createCategoryService.execute(categoryName);
+
     // create a service to Create a Transaction
     const createTransactionService = new CreateTransactionService();
-
-    // run the service
     const transaction = await createTransactionService.execute({
       title,
       value,
       type,
-      categoryName,
+      category,
     });
 
     return response.json(transaction);

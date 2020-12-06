@@ -2,12 +2,13 @@ import { getCustomRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
+import Category from '../models/Category';
 
 interface RequestDTO {
   title: string;
   value: number;
   type: 'income' | 'outcome';
-  categoryName: string;
+  category: Category;
 }
 
 class CreateTransactionService {
@@ -18,7 +19,7 @@ class CreateTransactionService {
     title,
     value,
     type,
-    categoryName,
+    category,
   }: RequestDTO): Promise<Transaction> {
     // User can't create a transaction if he does not have enough balance
     if (type === 'outcome') {
@@ -33,6 +34,7 @@ class CreateTransactionService {
       title,
       value,
       type,
+      category,
     });
 
     // save the created transaction in the database
