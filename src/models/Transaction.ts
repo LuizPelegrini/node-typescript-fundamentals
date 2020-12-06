@@ -29,7 +29,7 @@ class Transaction {
   categoryId: string;
 
   // Object that this FK references to (by using the category_id field)
-  @ManyToOne(() => Category)
+  @ManyToOne(() => Category, { eager: true }) // eager: true is set in order to return the Category object when calling find* methods
   @JoinColumn({ name: 'category_id' })
   category: Category;
 

@@ -10,8 +10,9 @@ const transactionRouter = Router();
 transactionRouter.get('/', async (request, response) => {
   // get our custom reposiotry of Transactions
   const transactionsRepository = getCustomRepository(TransactionsRepository);
-  // return a summary of all the transactions
-  const transactions = await transactionsRepository.find({});
+  // return a summary of all the transactions.
+  // the all() method removes categoryId from the transactions array
+  const transactions = await transactionsRepository.all();
   // return a balance resulted from all transactions
   const balance = await transactionsRepository.getBalance();
 
@@ -35,7 +36,15 @@ transactionRouter.post('/', async (request, response) => {
       category,
     });
 
-    return response.json(transaction);
+    // remove categoryId from object
+    const transactionWithoutCategoryId = {
+      title: transaction.title,
+      value: transaction.value,
+      type: transaction.type,
+      category: transaction.category,
+    };
+
+    return response.json(transactionWithoutCategoryId);
   } catch (err) {
     // in case the user does not have enough balance
     return response.status(400).json({ error: err.message });

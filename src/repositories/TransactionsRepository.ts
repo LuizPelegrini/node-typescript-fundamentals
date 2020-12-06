@@ -5,11 +5,22 @@
 import { Repository, EntityRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
+import Category from '../models/Category';
 
 interface Balance {
   income: number;
   outcome: number;
   total: number;
+}
+
+interface TransactionWithoutCategoryId {
+  id: string;
+  title: string;
+  value: number;
+  type: string;
+  category: Category;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 @EntityRepository(Transaction)
@@ -42,6 +53,25 @@ class TransactionsRepository extends Repository<Transaction> {
 
     balance.total = balance.income - balance.outcome;
     return balance;
+  }
+
+  public async all(): Promise<TransactionWithoutCategoryId[]> {
+    const transactions = await this.find();
+    const transactionsWithoutCategoryId = [] as TransactionWithoutCategoryId[];
+
+    transactions.forEach(transaction => {
+      transactionsWithoutCategoryId.push({
+        id: transaction.id,
+        title: transaction.title,
+        value: transaction.value,
+        type: transaction.type,
+        category: transaction.category,
+        createdAt: transaction.createdAt,
+        updatedAt: transaction.updatedAt,
+      });
+    });
+
+    return transactionsWithoutCategoryId;
   }
 }
 
