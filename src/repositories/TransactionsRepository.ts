@@ -1,3 +1,9 @@
+/**
+ * Custom Repository for Transactions. Needed because of the custom method getBalance()
+ */
+
+import { Repository, EntityRepository } from 'typeorm';
+
 import Transaction from '../models/Transaction';
 
 interface Balance {
@@ -6,31 +12,13 @@ interface Balance {
   total: number;
 }
 
-interface TransactionDTO {
-  title: string;
-  value: number;
-  type: 'income' | 'outcome';
-}
+@EntityRepository(Transaction)
+class TransactionsRepository extends Repository<Transaction> {
+  public async getBalance(): Promise<Balance> {
+    const transactions = await this.find();
 
-interface Summary {
-  transactions: Transaction[];
-  balance: Balance;
-}
-
-class TransactionsRepository {
-  private transactions: Transaction[];
-
-  constructor() {
-    this.transactions = [];
-  }
-
-  public all(): Transaction[] {
-    return this.transactions;
-  }
-
-  public getBalance(): Balance {
     // reduce the transactions into a balance object
-    const balance = this.transactions.reduce(
+    const balance = transactions.reduce(
       (accumulator: Balance, transaction: Transaction) => {
         switch (transaction.type) {
           case 'income':
@@ -54,13 +42,6 @@ class TransactionsRepository {
 
     balance.total = balance.income - balance.outcome;
     return balance;
-  }
-
-  public create({ title, value, type }: TransactionDTO): Transaction {
-    const transaction = new Transaction({ title, value, type });
-    this.transactions.push(transaction);
-
-    return transaction;
   }
 }
 

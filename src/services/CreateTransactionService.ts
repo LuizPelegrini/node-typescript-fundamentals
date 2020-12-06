@@ -1,3 +1,5 @@
+import { getCustomRepository } from 'typeorm';
+
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 
@@ -5,30 +7,36 @@ interface RequestDTO {
   title: string;
   value: number;
   type: 'income' | 'outcome';
+  categoryName: string;
 }
 
 class CreateTransactionService {
-  private transactionsRepository: TransactionsRepository;
+  // get our custom repository for Transactions
+  private transactionsRepository = getCustomRepository(TransactionsRepository);
 
-  constructor(transactionsRepository: TransactionsRepository) {
-    this.transactionsRepository = transactionsRepository;
-  }
-
-  public execute({ title, value, type }: RequestDTO): Transaction {
+  public async execute({
+    title,
+    value,
+    type,
+    categoryName,
+  }: RequestDTO): Promise<Transaction> {
     // User can't create a transaction if he does not have enough balance
     if (type === 'outcome') {
-      const balance = this.transactionsRepository.getBalance();
+      const balance = await this.transactionsRepository.getBalance();
       if (balance.total < value) {
         throw Error('You do not have enough balance');
       }
     }
 
-    // create transaction
+    // create a transaction object in the repository
     const transaction = this.transactionsRepository.create({
       title,
       value,
       type,
     });
+
+    // save the created transaction in the database
+    await this.transactionsRepository.save(transaction);
 
     return transaction;
   }

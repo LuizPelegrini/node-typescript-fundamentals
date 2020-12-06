@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 
 import Category from './Category';
+import ColumnNumericTransformer from './transformer/ColumnNumericTransformer'; // convert the value returned by postgres to number
 
 @Entity('transactions')
 class Transaction {
@@ -16,7 +17,7 @@ class Transaction {
   @Column()
   title: string;
 
-  @Column()
+  @Column({ transformer: new ColumnNumericTransformer() })
   value: number;
 
   @Column()

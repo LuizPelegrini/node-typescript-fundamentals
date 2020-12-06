@@ -1,35 +1,35 @@
 import { Router } from 'express';
+import { getCustomRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
 
 const transactionRouter = Router();
 
-const transactionsRepository = new TransactionsRepository();
-
-transactionRouter.get('/', (request, response) => {
+transactionRouter.get('/', async (request, response) => {
+  // get our custom reposiotry of Transactions
+  const transactionsRepository = getCustomRepository(TransactionsRepository);
   // return a summary of all the transactions
-  const transactions = transactionsRepository.all();
+  const transactions = await transactionsRepository.find({});
   // return a balance resulted from all transactions
-  const balance = transactionsRepository.getBalance();
+  const balance = await transactionsRepository.getBalance();
 
   return response.json({ transactions, balance });
 });
 
-transactionRouter.post('/', (request, response) => {
+transactionRouter.post('/', async (request, response) => {
   try {
-    const { title, value, type } = request.body;
+    const { title, value, type, categoryName } = request.body;
 
-    // create a service to Create a transaction
-    const createTransactionService = new CreateTransactionService(
-      transactionsRepository,
-    );
+    // create a service to Create a Transaction
+    const createTransactionService = new CreateTransactionService();
 
     // run the service
-    const transaction = createTransactionService.execute({
+    const transaction = await createTransactionService.execute({
       title,
       value,
       type,
+      categoryName,
     });
 
     return response.json(transaction);
