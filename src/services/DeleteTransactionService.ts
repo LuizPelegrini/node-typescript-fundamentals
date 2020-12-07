@@ -3,12 +3,13 @@ import { getCustomRepository } from 'typeorm';
 
 import TransactionRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
+import AppError from '../error/AppError';
 
 class DeleteTransactionService {
   public async execute(id: string): Promise<Transaction> {
     // first, verify if the id is a uuid
     if (!validate(id)) {
-      throw Error('ID is not valid');
+      throw new AppError('ID is not valid');
     }
 
     const transactionRepository = getCustomRepository(TransactionRepository);
@@ -19,7 +20,7 @@ class DeleteTransactionService {
 
     // if transaction could not be found, throw error
     if (!transactionToDelete) {
-      throw Error('ID does not exist');
+      throw new AppError('ID does not exist', 404);
     }
 
     // otherwise, delete it and return as result

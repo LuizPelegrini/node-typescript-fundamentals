@@ -28,76 +28,64 @@ transactionRouter.get('/', async (request, response) => {
 
 // CREATE a new transaction
 transactionRouter.post('/', async (request, response) => {
-  try {
-    const { title, value, type, categoryName } = request.body;
+  const { title, value, type, category } = request.body;
 
-    // create a category service that POSSIBLY create a new category or return an existing one
-    const createCategoryService = new CreateCategoryService();
-    const category = await createCategoryService.execute(categoryName);
+  // create a category service that POSSIBLY create a new category or return an existing one
+  const createCategoryService = new CreateCategoryService();
+  const newCategory = await createCategoryService.execute(category);
 
-    // create a service to Create a Transaction
-    const createTransactionService = new CreateTransactionService();
-    const transaction = await createTransactionService.execute({
-      title,
-      value,
-      type,
-      category,
-    });
+  // create a service to Create a Transaction
+  const createTransactionService = new CreateTransactionService();
+  const transaction = await createTransactionService.execute({
+    title,
+    value,
+    type,
+    category: newCategory,
+  });
 
-    // remove categoryId from object
-    const transactionWithoutCategoryId = {
-      title: transaction.title,
-      value: transaction.value,
-      type: transaction.type,
-      category: transaction.category,
-    };
+  // remove categoryId from object
+  const transactionWithoutCategoryId = {
+    id: transaction.id,
+    title: transaction.title,
+    value: transaction.value,
+    type: transaction.type,
+    category: transaction.category,
+  };
 
-    return response.json(transactionWithoutCategoryId);
-  } catch (err) {
-    // in case the user does not have enough balance
-    return response.status(400).json({ error: err.message });
-  }
+  return response.json(transactionWithoutCategoryId);
 });
 
 // REMOVE a given transaction based on its id
 transactionRouter.delete('/:id', async (request, response) => {
-  try {
-    const { id } = request.params;
+  const { id } = request.params;
 
-    // create a service to delete a transaction with the given id
-    const deleteService = new DeleteTransactionService();
-    const transactionDeleted = await deleteService.execute(id);
+  // create a service to delete a transaction with the given id
+  const deleteService = new DeleteTransactionService();
+  const transactionDeleted = await deleteService.execute(id);
 
-    // remove categoryId from object
-    const transactionWithoutCategoryId = {
-      title: transactionDeleted.title,
-      value: transactionDeleted.value,
-      type: transactionDeleted.type,
-      category: transactionDeleted.category,
-    };
+  // remove categoryId from object
+  const transactionWithoutCategoryId = {
+    title: transactionDeleted.title,
+    value: transactionDeleted.value,
+    type: transactionDeleted.type,
+    category: transactionDeleted.category,
+  };
 
-    return response.json(transactionWithoutCategoryId);
-  } catch (err) {
-    return response.status(400).json({ error: err.message });
-  }
+  return response.json(transactionWithoutCategoryId);
 });
 
 // LOAD transactions from a CSV file
 transactionRouter.post(
   '/import',
-  upload.single('transactions_csv'),
+  upload.single('file'),
   async (request, response) => {
-    try {
-      // create a service to create transactions from the uploaded csv file
-      const createTransactionsFromCSV = new CreateTransactionsFromCSVService();
-      const transactions = await createTransactionsFromCSV.execute(
-        request.file.filename,
-      );
+    // create a service to create transactions from the uploaded csv file
+    const createTransactionsFromCSV = new CreateTransactionsFromCSVService();
+    const transactions = await createTransactionsFromCSV.execute(
+      request.file.filename,
+    );
 
-      return response.json(transactions);
-    } catch (err) {
-      return response.status(400).json({ error: err.message });
-    }
+    return response.json(transactions);
   },
 );
 

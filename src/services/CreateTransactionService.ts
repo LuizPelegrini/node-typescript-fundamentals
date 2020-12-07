@@ -3,6 +3,7 @@ import { getCustomRepository } from 'typeorm';
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
+import AppError from '../error/AppError';
 
 interface RequestDTO {
   title: string;
@@ -25,7 +26,7 @@ class CreateTransactionService {
     if (type === 'outcome') {
       const balance = await this.transactionsRepository.getBalance();
       if (balance.total < value) {
-        throw Error(`You do not have enough balance ${title}`);
+        throw new AppError('You do not have enough balance');
       }
     }
 
