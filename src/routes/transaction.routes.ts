@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { getCustomRepository } from 'typeorm';
+import multer from 'multer';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
 import CreateCategoryService from '../services/CreateCategoryService';
 import DeleteTransactionService from '../services/DeleteTransactionService';
+import CreateTransactionsFromCSVService from '../services/CreateTransactionsFromCSVService';
+
+import uploadConfig from '../config/upload';
 
 const transactionRouter = Router();
+const upload = multer(uploadConfig);
 
 // LIST all transactions and show the resulting balance
 transactionRouter.get('/', async (request, response) => {
@@ -54,6 +59,7 @@ transactionRouter.post('/', async (request, response) => {
   }
 });
 
+// REMOVE a given transaction based on its id
 transactionRouter.delete('/:id', async (request, response) => {
   try {
     const { id } = request.params;
@@ -75,5 +81,24 @@ transactionRouter.delete('/:id', async (request, response) => {
     return response.status(400).json({ error: err.message });
   }
 });
+
+// LOAD transactions from a CSV file
+transactionRouter.post(
+  '/import',
+  upload.single('transactions_csv'),
+  async (request, response) => {
+    try {
+      // create a service to create transactions from the uploaded csv file
+      const createTransactionsFromCSV = new CreateTransactionsFromCSVService();
+      const transactions = await createTransactionsFromCSV.execute(
+        request.file.filename,
+      );
+
+      return response.json(transactions);
+    } catch (err) {
+      return response.status(400).json({ error: err.message });
+    }
+  },
+);
 
 export default transactionRouter;
