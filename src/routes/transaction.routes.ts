@@ -61,17 +61,9 @@ transactionRouter.delete('/:id', async (request, response) => {
 
   // create a service to delete a transaction with the given id
   const deleteService = new DeleteTransactionService();
-  const transactionDeleted = await deleteService.execute(id);
+  await deleteService.execute(id);
 
-  // remove categoryId from object
-  const transactionWithoutCategoryId = {
-    title: transactionDeleted.title,
-    value: transactionDeleted.value,
-    type: transactionDeleted.type,
-    category: transactionDeleted.category,
-  };
-
-  return response.json(transactionWithoutCategoryId);
+  return response.status(204).send();
 });
 
 // LOAD transactions from a CSV file

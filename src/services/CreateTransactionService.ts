@@ -24,8 +24,8 @@ class CreateTransactionService {
   }: RequestDTO): Promise<Transaction> {
     // User can't create a transaction if he does not have enough balance
     if (type === 'outcome') {
-      const balance = await this.transactionsRepository.getBalance();
-      if (balance.total < value) {
+      const { total } = await this.transactionsRepository.getBalance();
+      if (total < value) {
         throw new AppError('You do not have enough balance');
       }
     }

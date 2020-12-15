@@ -6,7 +6,7 @@ import Transaction from '../models/Transaction';
 import AppError from '../error/AppError';
 
 class DeleteTransactionService {
-  public async execute(id: string): Promise<Transaction> {
+  public async execute(id: string): Promise<void> {
     // first, verify if the id is a uuid
     if (!validate(id)) {
       throw new AppError('ID is not valid');
@@ -25,8 +25,6 @@ class DeleteTransactionService {
 
     // otherwise, delete it and return as result
     await transactionRepository.delete(id);
-
-    return transactionToDelete;
   }
 }
 

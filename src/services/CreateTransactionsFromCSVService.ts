@@ -1,40 +1,31 @@
 import csvParse from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
+import { getCustomRepository, getRepository, In } from 'typeorm';
 
-import CreateCategoryService from './CreateCategoryService';
-import CreateTransactionService from './CreateTransactionService';
 import Category from '../models/Category';
 import Transaction from '../models/Transaction';
 import uploadConfig from '../config/upload';
+import TransactionRepository from '../repositories/TransactionsRepository';
 
 // object data parsed from a csv line
-interface TransactionCSVLine {
+interface CSVTransaction {
   title: string;
+  type: string;
   value: number;
-  type: 'income' | 'outcome';
-  categoryName: string;
+  category: string;
 }
 
 class CreateTransactionsFromCSVService {
   public async execute(filename: string): Promise<Transaction[]> {
+    const transactionsRepository = getCustomRepository(TransactionRepository);
+    const categoriesRepository = getRepository(Category);
+
     // get the path to file
     const csvFilePath = path.resolve(uploadConfig.directory, filename);
 
-    // load csv data
-    const lines = await this.loadCSV(csvFilePath);
-    // immediatelly remove the file from local storage
-    await fs.promises.unlink(csvFilePath);
-    // return all the transactions loaded from CSV and saved to the database
-    const transactions = await this.createTransactions(lines);
-
-    return transactions;
-  }
-
-  // load an array of lines from csv files
-  private async loadCSV(csvPath: string): Promise<string[][]> {
     // create a reading stream
-    const readCSVStream = fs.createReadStream(csvPath);
+    const readCSVStream = fs.createReadStream(csvFilePath);
 
     // create the output stream that will start from line 2 (skip the headers)
     // and it'll remove left and right spaces from 'bla, bla, bla' => 'bla,bla,bla'
@@ -47,64 +38,71 @@ class CreateTransactionsFromCSVService {
     // create a communication (pipe) between the two streams
     const parseCommunication = readCSVStream.pipe(parseStream);
 
-    const lines = [] as string[][];
-    // Read line-by-line
-    parseCommunication.on('data', line => {
-      lines.push(line);
+    // for bulk saving (saving all transactions at one time), we need to cache all transactions and categories from CSV
+    const transactions: CSVTransaction[] = [];
+    const categories: string[] = [];
+
+    parseCommunication.on('data', async (line: string[]) => {
+      const [title, type, value, category] = line;
+
+      if (!title || !type || !value) return;
+
+      categories.push(category);
+      transactions.push({ title, type, value: Number(value), category });
     });
 
-    // hangs the function until the file is completely read
-    await new Promise(resolve => {
-      parseCommunication.on('end', resolve);
+    // wait until we finish reading all the file...
+    await new Promise(resolve => parseCommunication.on('end', resolve));
+
+    // returns all categories that are BOTH in the database AND in the array (cross-search)
+    const existentCategories = await categoriesRepository.find({
+      where: {
+        title: In(categories),
+      },
     });
 
-    return lines;
-  }
+    // we're only interested in the categories titles, not the whole category object
+    const existentCategoriesTitles = existentCategories.map(
+      (category: Category) => category.title,
+    );
 
-  // save multiple transactions to database given an array of csv lines
-  private async createTransactions(lines: string[][]): Promise<Transaction[]> {
-    const transactions = [] as Transaction[];
-    // create a cache of categories to avoid fetching DB
-    const categories = [] as Category[];
-    const createCategory = new CreateCategoryService();
-    const createTransaction = new CreateTransactionService();
-
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index];
-      // retrieve values from line
-      const { title, value, type, categoryName } = this.parseLine(line);
-
-      // attempt to find a category in the memory first
-      // if not found, then we try in database
-      let category = categories.find(c => c.title === categoryName);
-      if (!category) {
-        category = await createCategory.execute(categoryName);
-        categories.push(category);
-      }
-
-      // create a new transaction in the database
-      const newTransaction = await createTransaction.execute({
-        title,
-        value,
-        type,
-        category,
+    // return the categories that are NOT in the database
+    const categoriesToAdd = categories
+      .filter(c => !existentCategoriesTitles.includes(c))
+      // and remove the duplicates
+      .filter((value, index, self) => {
+        return index === self.indexOf(value);
       });
 
-      transactions.push(newTransaction);
-    }
+    const newCategories = categoriesRepository.create(
+      // maps the string to a new object that contains title
+      categoriesToAdd.map(title => ({
+        title,
+      })),
+    );
 
-    return transactions;
-  }
+    // save all categories into the database
+    await categoriesRepository.save(newCategories);
 
-  // from a ['title', 'type', '1500', 'categoryName'] returns an object
-  private parseLine(line: string[]): TransactionCSVLine {
-    return {
-      title: line[0],
-      // FIXME: throw error if type is not neither 'income' or 'outcome'
-      type: line[1] === 'income' ? 'income' : 'outcome',
-      value: parseFloat(line[2]),
-      categoryName: line[3],
-    };
+    // finalCategories = newCategories (that were not in the database) + existentCategories (that were in the database already)
+    const finalCategories = [...newCategories, ...existentCategories];
+
+    const createdTransactions = transactionsRepository.create(
+      transactions.map(t => ({
+        title: t.title,
+        type: t.type,
+        value: t.value,
+        category: finalCategories.find(c => t.category === c.title),
+      })),
+    );
+
+    // save transactions into database
+    await transactionsRepository.save(createdTransactions);
+
+    // delete file from temp folder
+    await fs.promises.unlink(csvFilePath);
+
+    return createdTransactions;
   }
 }
 
